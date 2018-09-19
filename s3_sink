@@ -1,0 +1,17 @@
+#!/home/e/Projects/wallaroo_labs/s3_log/.env/bin/python
+import sys
+import threading
+import wallaroo.experimental
+import datetime
+import boto3
+
+connector = wallaroo.experimental.SinkConnector(required_params=['bucket'], optional_params=[])
+connector.listen()
+s3 = boto3.client('s3')
+bucket_name = connector.params.bucket
+s3.create_bucket(Bucket=bucket_name)
+
+while True:
+    log_file = connector.read()
+    key = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    s3.put_object(Bucket=bucket_name, Body=log_file, Key="{}.txt".format(key), ACL='authenticated-read')

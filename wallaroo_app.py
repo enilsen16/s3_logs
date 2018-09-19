@@ -1,4 +1,3 @@
-import cStringIO
 import string
 import struct
 import wallaroo
@@ -12,7 +11,7 @@ def application_setup(args):
 
     ab.new_pipeline("Filter and Upload", "text")
     ab.to(filter_events)
-    ab.to_state_partition(maybe_upload, LogFile, "log files", partition)
+    ab.to_stateful(maybe_upload, LogFile, "log files")
     ab.to_sink("batch")
     return ab.build()
 
@@ -25,35 +24,27 @@ def filter_events(data):
 @wallaroo.state_computation(name="Maybe upload")
 def maybe_upload(event, log_of_events):
     log_of_events.add(event)
+
     if log_of_events.file_size >= 1000000:
-        log_file = log_of_events.get()
+        log_file = log_of_events.file
         log_of_events.clear_file()
         return (log_file, True)
     else:
-        print "Haven't written yet"
-        return (None, True)
+        print log_of_events.file_size
+        return (None, False)
 
 
 class LogFile(object):
     def __init__(self):
-        self.file = cStringIO.StringIO()  # Create a file-like object
-        self.filesize = 0
+        self.file = "" # Create a file-like object
+        self.file_size = 0
 
     def add(self, event):
-        self.file.write(event)
-        self.filesize += len(event.encode('utf-8'))
+        self.file += (event.encode('utf-8'))
+        self.file_size += len(event.encode('utf-8'))
 
     def clear_file(self):
-        self.file.close()
         self.__init__()
-
-    def get(self):
-        self.file.getvalue()
-
-
-@wallaroo.partition
-def partition(data):
-    return data
 
 @wallaroo.experimental.stream_message_decoder
 def decode_text(message):
@@ -69,4 +60,4 @@ def decode_batch(message):
 
 @wallaroo.experimental.stream_message_encoder
 def encode_batch(message):
-    return cPickle.dumps((message.get().encode("utf-8")), -1)
+    return cPickle.dumps((message.encode("utf-8")), -1)
