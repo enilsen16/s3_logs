@@ -14,4 +14,4 @@ s3.create_bucket(Bucket=bucket_name)
 while True:
     log_file = connector.read()
     key = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    s3.put_object(Bucket=bucket_name, Body=log_file, Key="{}.txt".format(key), ACL='authenticated-read')
+    s3.put_object(Bucket=bucket_name, Body=log_file, Key="{}.txt".format(key), ContentType='text/plain', ACL='authenticated-read')

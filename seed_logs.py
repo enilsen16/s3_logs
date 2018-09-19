@@ -18,4 +18,4 @@ while True:
     message = generate_log_string()
     connector.write(message.encode("utf-8"))
     print "message sent!: {}".format(message)
-    time.sleep(.001)
+    time.sleep(.05)
