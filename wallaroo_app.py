@@ -5,13 +5,6 @@ import wallaroo
 import wallaroo.experimental
 import cPickle
 
-# Take a look at the string,
-# Filter based on some sort of parameter
-# Batch in a state computation
-# When the file size is greater than 1mb
-# Lets send the content to the sink
-
-
 def application_setup(args):
     ab = wallaroo.ApplicationBuilder("Send log files to S3")
     ab.source_connector("text", encoder=encode_text, decoder=decode_text)
@@ -32,7 +25,13 @@ def filter_events(data):
 @wallaroo.state_computation(name="Maybe upload")
 def maybe_upload(event, log_of_events):
     log_of_events.add(event)
-    return (log_of_events.get(), True)
+    if log_of_events.file_size >= 1000000:
+        log_file = log_of_events.get()
+        log_of_events.clear_file()
+        return (log_file, True)
+    else:
+        print "Haven't written yet"
+        return (None, True)
 
 
 class LogFile(object):
@@ -45,7 +44,8 @@ class LogFile(object):
         self.filesize += len(event.encode('utf-8'))
 
     def clear_file(self):
-        self.file = cStringIO.StringIO()
+        self.file.close()
+        self.__init__()
 
     def get(self):
         self.file.getvalue()
