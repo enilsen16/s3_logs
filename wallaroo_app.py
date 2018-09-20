@@ -3,6 +3,7 @@ import struct
 import wallaroo
 import wallaroo.experimental
 import cPickle
+import StringIO
 
 def application_setup(args):
     ab = wallaroo.ApplicationBuilder("Send log files to S3")
@@ -25,25 +26,24 @@ def filter_events(data):
 def maybe_upload(event, log_of_events):
     log_of_events.add(event)
 
-    if log_of_events.file_size >= 1000000:
-        log_file = log_of_events.file
+    if log_of_events.file.len >= 1000000:
+        log_file = log_of_events.file.getvalue()
         log_of_events.clear_file()
         return (log_file, True)
     else:
-        print log_of_events.file_size
+        print log_of_events.file.len
         return (None, False)
 
 
 class LogFile(object):
     def __init__(self):
-        self.file = "" # Create a file-like object
-        self.file_size = 0
+        self.file = StringIO.StringIO()
 
     def add(self, event):
-        self.file += (event.encode('utf-8'))
-        self.file_size += len(event.encode('utf-8'))
+        self.file.write(event.encode('utf-8'))
 
     def clear_file(self):
+        self.file.close()
         self.__init__()
 
 @wallaroo.experimental.stream_message_decoder
